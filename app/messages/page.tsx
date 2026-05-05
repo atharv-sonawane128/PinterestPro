@@ -7,7 +7,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function MessagesPage() {
+import { Suspense } from 'react';
+
+function MessagesContent() {
   const { user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -28,8 +30,7 @@ export default function MessagesPage() {
     const lastActiveDate = new Date(lastActive);
     const now = new Date();
     const diffInMinutes = (now.getTime() - lastActiveDate.getTime()) / (1000 * 60);
-    // console.log(`Checking online for ${lastActive}: diff is ${diffInMinutes}m`);
-    return diffInMinutes < 5; // Increase to 5 mins to be safer with polling/delays
+    return diffInMinutes < 5;
   };
 
   const formatLastSeen = (lastActive: string | Date) => {
@@ -134,7 +135,6 @@ export default function MessagesPage() {
 
   useEffect(() => {
     fetchConversations();
-    // Real-time: Refresh conversations every 10s
     const interval = setInterval(fetchConversations, 10000);
     return () => clearInterval(interval);
   }, [user]);
@@ -142,7 +142,6 @@ export default function MessagesPage() {
   useEffect(() => {
     if (selectedConv) {
       fetchMessages(selectedConv._id);
-      // Real-time: Refresh messages every 3s when chat open
       const interval = setInterval(() => fetchMessages(selectedConv._id), 3000);
       return () => clearInterval(interval);
     }
@@ -155,8 +154,6 @@ export default function MessagesPage() {
   return (
     <PageContainer>
       <div className="max-w-6xl mx-auto flex h-[calc(100vh-120px)] bg-white rounded-[3rem] border border-gray-100 shadow-xl overflow-hidden relative">
-        
-        {/* SIDEBAR */}
         <div className={`w-full md:w-96 border-r border-gray-100 flex flex-col transition-all ${selectedConv ? 'hidden md:flex' : 'flex'}`}>
           <div className="p-8 pb-6">
             <div className="flex items-center justify-between mb-8">
@@ -241,11 +238,9 @@ export default function MessagesPage() {
           </div>
         </div>
 
-        {/* CHAT AREA */}
         <div className={`flex-1 flex flex-col bg-gray-50/20 ${!selectedConv ? 'hidden md:flex' : 'flex'}`}>
           {selectedConv ? (
             <>
-              {/* Chat Header */}
               <div className="p-6 md:p-8 bg-white border-b border-gray-100 flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <button onClick={() => setSelectedConv(null)} className="md:hidden p-2 hover:bg-gray-100 rounded-full">
@@ -273,7 +268,6 @@ export default function MessagesPage() {
                 </div>
               </div>
 
-              {/* Messages Container */}
               <div className="flex-1 overflow-y-auto no-scrollbar p-6 md:p-10 space-y-6">
                 {messages.map((msg, i) => {
                   const isMe = msg.senderId === user?.uid;
@@ -300,7 +294,6 @@ export default function MessagesPage() {
                 <div ref={messageEndRef} />
               </div>
 
-              {/* Chat Input */}
               <div className="p-6 md:p-8 bg-white border-t border-gray-100">
                 <form onSubmit={sendMessage} className="flex gap-4 items-center">
                   <div className="flex-1 bg-gray-50 rounded-[2rem] px-6 py-4 flex items-center focus-within:bg-white focus-within:ring-4 focus-within:ring-gray-100/50 transition-all border-2 border-transparent focus-within:border-gray-100">
@@ -338,3 +331,16 @@ export default function MessagesPage() {
     </PageContainer>
   );
 }
+
+export default function MessagesPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="animate-spin text-red-600 w-10 h-10" />
+      </div>
+    }>
+      <MessagesContent />
+    </Suspense>
+  );
+}
+
