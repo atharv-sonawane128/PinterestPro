@@ -13,7 +13,7 @@ export default function Home() {
   const { searchQuery } = useSearch();
   
   const [isOfflineMode, setIsOfflineMode] = useState(false);
-  const [pins, setPins] = useState([]);
+  const [pins, setPins] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchPins = async (search: string | null = null) => {
