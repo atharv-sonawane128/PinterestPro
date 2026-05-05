@@ -18,7 +18,7 @@ export async function POST(
     }
     
     // Toggle pin
-    const pinIndex = board.pins.findIndex((p: any) => p.toString() === pinId);
+    const pinIndex = board.pins.findIndex((p: mongoose.Types.ObjectId) => p.toString() === pinId);
     
     let isAdded = false;
     if (pinIndex === -1) {
