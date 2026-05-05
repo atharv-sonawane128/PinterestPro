@@ -56,7 +56,7 @@ const BoardCard = ({ board }: { board: any }) => {
 
 export default function BoardsPage() {
   const { user, loading: authLoading } = useAuth();
-  const [boards, setBoards] = useState([]);
+  const [boards, setBoards] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [newBoardName, setNewBoardName] = useState('');

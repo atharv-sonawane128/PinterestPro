@@ -16,7 +16,7 @@ export default function PinDetailPage({ params: paramsPromise }: { params: Promi
   const { user } = useAuth();
   const { isPinSaved, toggleSave, refreshSaved } = useSaved();
   const [pin, setPin] = useState<any>(null);
-  const [relatedPins, setRelatedPins] = useState([]);
+  const [relatedPins, setRelatedPins] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [comments, setComments] = useState<any[]>([]);
