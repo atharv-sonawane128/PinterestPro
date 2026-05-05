@@ -35,9 +35,28 @@ export async function GET(
     const { id } = await params;
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
+    const userEmail = searchParams.get('userEmail');
     
-    const existing = await SavedPin.findOne({ userId, pinId: id });
-    return NextResponse.json({ saved: !!existing });
+    // Check general saves
+    const existingGeneral = await SavedPin.findOne({ userId, pinId: id });
+    if (existingGeneral) {
+      return NextResponse.json({ saved: true });
+    }
+    
+    // Check if in any of user's boards
+    if (userEmail || userId) {
+      const Board = (await import('@/models/Board')).default;
+      const query = userId ? { userId } : { userEmail };
+      const boards = await Board.find(query);
+      const isInBoard = boards.some(board => 
+        board.pins.some((p: any) => p.toString() === id)
+      );
+      if (isInBoard) {
+        return NextResponse.json({ saved: true });
+      }
+    }
+    
+    return NextResponse.json({ saved: false });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

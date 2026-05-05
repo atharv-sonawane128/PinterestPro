@@ -10,7 +10,7 @@ export async function GET(request: Request) {
     const email = searchParams.get('email');
     
     const query = userId ? { userId } : { userEmail: email };
-    const boards = await Board.find(query).sort({ createdAt: -1 });
+    const boards = await Board.find(query).populate('pins').sort({ createdAt: -1 });
     
     return NextResponse.json(boards);
   } catch (error: any) {

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Bookmark, Share2, MoreHorizontal, MessageSquareText, Download, Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { useSaved } from '@/context/SavedContext';
 import { useEffect } from 'react';
 
 interface PinCardProps {
@@ -23,26 +24,13 @@ interface PinCardProps {
 const PinCard = ({ id, images, title, privateNote: initialNote, author }: PinCardProps) => {
   const router = useRouter();
   const { user } = useAuth();
+  const { isPinSaved, toggleSave } = useSaved();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
   const [showNoteInput, setShowNoteInput] = useState(false);
   const [privateNote, setPrivateNote] = useState(initialNote || '');
-  const [isSaved, setIsSaved] = useState(false);
+  const isSaved = isPinSaved(id);
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    const checkSaveStatus = async () => {
-      if (!user) return;
-      try {
-        const res = await fetch(`/api/pins/${id}/save?userId=${user.uid}`);
-        const data = await res.json();
-        setIsSaved(data.saved);
-      } catch (error) {
-        console.error("Failed to check save status:", error);
-      }
-    };
-    checkSaveStatus();
-  }, [id, user]);
 
   const handleSave = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -52,15 +40,7 @@ const PinCard = ({ id, images, title, privateNote: initialNote, author }: PinCar
     }
     setSaving(true);
     try {
-      const res = await fetch(`/api/pins/${id}/save`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.uid })
-      });
-      const data = await res.json();
-      setIsSaved(data.saved);
-    } catch (error) {
-      console.error("Failed to save pin:", error);
+      await toggleSave(id);
     } finally {
       setSaving(false);
     }

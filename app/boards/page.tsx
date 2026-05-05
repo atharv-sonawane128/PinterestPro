@@ -7,7 +7,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 
 const BoardCard = ({ board }: { board: any }) => {
-  const coverImages = board.pins?.slice(0, 3).map((p: any) => p.images[0]) || [];
+  const coverImages = board.pins?.slice(0, 3)
+    .filter((p: any) => p && typeof p === 'object' && p.images && p.images.length > 0)
+    .map((p: any) => p.images[0]) || [];
   
   return (
     <motion.div 
@@ -104,6 +106,10 @@ export default function BoardsPage() {
   useEffect(() => {
     if (!authLoading) {
       fetchBoards();
+      
+      const handleFocus = () => fetchBoards();
+      window.addEventListener('focus', handleFocus);
+      return () => window.removeEventListener('focus', handleFocus);
     }
   }, [user, authLoading]);
 

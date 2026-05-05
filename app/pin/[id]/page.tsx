@@ -3,16 +3,18 @@
 import React, { useEffect, useState } from 'react';
 import PageContainer from '@/components/PageContainer';
 import MasonryGrid from '@/components/MasonryGrid';
-import { Heart, MessageSquare, Share2, MoreHorizontal, ArrowLeft, ChevronDown, Smile, StickyNote, Image as ImageIcon, Sparkles, Search, X, Check } from 'lucide-react';
+import { Heart, MessageSquare, Share2, MoreHorizontal, ArrowLeft, ChevronDown, Smile, StickyNote, Image as ImageIcon, Sparkles, Search, X, Check, Plus, Lock, LayoutGrid } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { use } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useSaved } from '@/context/SavedContext';
 
 export default function PinDetailPage({ params: paramsPromise }: { params: Promise<{ id: string }> }) {
   const params = use(paramsPromise);
   const router = useRouter();
   const { user } = useAuth();
+  const { isPinSaved, toggleSave, refreshSaved } = useSaved();
   const [pin, setPin] = useState<any>(null);
   const [relatedPins, setRelatedPins] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -24,13 +26,16 @@ export default function PinDetailPage({ params: paramsPromise }: { params: Promi
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [gifSearch, setGifSearch] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean, id: string | null }>({ show: false, id: null });
-  const [isSaved, setIsSaved] = useState(false);
+  const isSaved = isPinSaved(params.id);
   const [saving, setSaving] = useState(false);
   const [liked, setLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
   const [boards, setBoards] = useState<any[]>([]);
   const [selectedBoardId, setSelectedBoardId] = useState<string | null>(null);
   const [showBoardPicker, setShowBoardPicker] = useState(false);
+  const [showCreateBoardModal, setShowCreateBoardModal] = useState(false);
+  const [newBoardData, setNewBoardData] = useState({ name: '', isPrivate: false });
+  const [showToast, setShowToast] = useState<{ show: boolean, message: string }>({ show: false, message: '' });
 
   const fetchBoards = async () => {
     if (!user) return;
@@ -38,11 +43,31 @@ export default function PinDetailPage({ params: paramsPromise }: { params: Promi
       const res = await fetch(`/api/boards?email=${user.email}`);
       const data = await res.json();
       setBoards(data);
-      if (data.length > 0 && !selectedBoardId) {
-        setSelectedBoardId(data[0]._id);
-      }
     } catch (error) {
       console.error("Failed to fetch boards:", error);
+    }
+  };
+
+  const handleCreateBoard = async () => {
+    if (!newBoardData.name.trim() || !user) return;
+    try {
+      const res = await fetch('/api/boards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          name: newBoardData.name, 
+          isPrivate: newBoardData.isPrivate,
+          userEmail: user.email,
+          userId: user.uid 
+        })
+      });
+      if (res.ok) {
+        fetchBoards();
+        setShowCreateBoardModal(false);
+        setNewBoardData({ name: '', isPrivate: false });
+      }
+    } catch (error) {
+      console.error("Failed to create board:", error);
     }
   };
 
@@ -59,8 +84,9 @@ export default function PinDetailPage({ params: paramsPromise }: { params: Promi
         body: JSON.stringify({ pinId: params.id })
       });
       if (res.ok) {
-        setIsSaved(true);
         setShowBoardPicker(false);
+        // Refresh boards to get updated pin lists
+        fetchBoards();
       }
     } catch (error) {
       console.error("Failed to save to board:", error);
@@ -111,33 +137,30 @@ export default function PinDetailPage({ params: paramsPromise }: { params: Promi
     }
     setSaving(true);
     try {
-      const res = await fetch(`/api/pins/${params.id}/save`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.uid })
-      });
-      const data = await res.json();
-      setIsSaved(data.saved);
-    } catch (error) {
-      console.error("Failed to save pin:", error);
+      await toggleSave(params.id);
     } finally {
       setSaving(false);
     }
   };
 
+  const triggerToast = (message: string) => {
+    setShowToast({ show: true, message });
+    setTimeout(() => setShowToast({ show: false, message: '' }), 3000);
+  };
+
+  const handlePinShare = () => {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url);
+    triggerToast("Pin link copied to clipboard!");
+    setShowMoreMenu(false);
+  };
+
   useEffect(() => {
-    const checkSaveStatus = async () => {
-      if (!user || !params.id) return;
-      try {
-        const res = await fetch(`/api/pins/${params.id}/save?userId=${user.uid}`);
-        const data = await res.json();
-        setIsSaved(data.saved);
-      } catch (error) {
-        console.error("Failed to check save status:", error);
-      }
-    };
-    checkSaveStatus();
+    refreshSaved();
   }, [params.id, user]);
+
+  // Derived state: Is pin in the currently selected board?
+  const isInSelectedBoard = selectedBoardId && boards.length > 0 && boards.find(b => b._id === selectedBoardId)?.pins.some((p: any) => (p._id || p).toString() === params.id);
 
   const EMOJIS = ['❤️', '😂', '🔥', '👏', '😍', '✨', '🙌', '💯', '🤔', '🎉', '🌟', '🌈', '🍕', '🍔', '🎈', '🎨'];
   const DEMO_GIFS = [
@@ -231,6 +254,11 @@ export default function PinDetailPage({ params: paramsPromise }: { params: Promi
     };
 
     fetchPinData();
+
+    // Real-time: Refresh when window regained focus
+    const handleFocus = () => fetchPinData();
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, [params.id]);
 
   const handlePostComment = async (e: React.KeyboardEvent) => {
@@ -280,7 +308,7 @@ export default function PinDetailPage({ params: paramsPromise }: { params: Promi
                 <button onClick={() => router.back()} className="p-2 hover:bg-gray-100 rounded-full">
                   <ArrowLeft size={20} />
                 </button>
-                <div className="flex gap-4">
+                <div className="hidden md:flex gap-4">
                   <button 
                     onClick={handleLike}
                     className={`p-3 rounded-full hover:bg-gray-100 transition-all flex items-center gap-2 ${liked ? 'text-red-500' : 'text-gray-700'}`}
@@ -288,74 +316,113 @@ export default function PinDetailPage({ params: paramsPromise }: { params: Promi
                     <Heart size={24} fill={liked ? "currentColor" : "none"} />
                     {likesCount > 0 && <span className="font-bold text-sm">{likesCount}</span>}
                   </button>
-                  <button className="p-3 hover:bg-gray-100 rounded-full transition-all">
+                  <button className="p-3 hover:bg-gray-100 rounded-full transition-all text-gray-700">
                     <Share2 size={24} />
                   </button>
                 </div>
               </div>
               
               <div className="flex items-center gap-2 relative">
-                {/* Desktop View: Profile and Save */}
-                <div className="flex items-center gap-2 relative">
+                {/* Desktop View: Board and Save */}
+                <div className="hidden md:flex items-center gap-2 relative">
                   <div 
-                    className="flex items-center gap-2 cursor-pointer hover:bg-gray-100 p-2 rounded-xl transition-all"
+                    className="flex items-center gap-2 cursor-pointer hover:bg-gray-100 p-2 px-3 rounded-xl transition-all"
                     onClick={() => setShowBoardPicker(!showBoardPicker)}
                   >
                     <span className="font-bold text-gray-800">
-                      {boards.find(b => b._id === selectedBoardId)?.name || "Select Board"}
+                      {selectedBoardId ? (boards.find(b => b._id === selectedBoardId)?.name) : "Add to board"}
                     </span>
-                    <ChevronDown size={16} />
+                    {isInSelectedBoard && <Check size={16} className="text-red-600" />}
+                    <ChevronDown size={16} className="text-gray-400" />
                   </div>
 
                   {showBoardPicker && (
-                    <div className="absolute top-full left-0 mt-2 w-64 bg-white border border-gray-100 rounded-2xl shadow-2xl z-50 py-4 animate-in slide-in-from-top-2 duration-200">
-                      <p className="px-4 text-xs font-bold text-gray-400 uppercase mb-2">Save to board</p>
-                      <div className="max-h-60 overflow-y-auto no-scrollbar">
-                        {boards.length > 0 ? boards.map(board => (
-                          <div 
-                            key={board._id}
-                            onClick={() => {
-                              setSelectedBoardId(board._id);
+                    <>
+                      <div 
+                        className="fixed inset-0 z-40" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowBoardPicker(false);
+                        }}
+                      />
+                      <div className="absolute top-full left-0 mt-2 w-72 bg-white border border-gray-100 rounded-3xl shadow-2xl z-50 py-4 animate-in slide-in-from-top-2 duration-200">
+                        <p className="px-4 text-xs font-bold text-gray-400 uppercase mb-3 tracking-wider">Save to board</p>
+                        <div className="max-h-80 overflow-y-auto no-scrollbar">
+                          {boards.length > 0 ? boards.map(board => (
+                            <div 
+                              key={board._id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedBoardId(board._id);
+                                saveToBoard(board._id);
+                              }}
+                              className="px-4 py-3 hover:bg-gray-50 flex items-center justify-between cursor-pointer group transition-colors"
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden border border-gray-50">
+                                  {board.pins && board.pins.length > 0 ? (
+                                    <img 
+                                      src={board.pins[0].images?.[0] || board.pins[0].imageUrl} 
+                                      className="w-full h-full object-cover" 
+                                      alt="" 
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full bg-gradient-to-br from-gray-50 to-gray-200 flex items-center justify-center">
+                                      <LayoutGrid size={16} className="text-gray-400" />
+                                    </div>
+                                  )}
+                                </div>
+                                <span className="font-bold text-gray-700">{board.name}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {board.isPrivate && <Lock size={14} className="text-gray-400" />}
+                                {board.pins?.some((p: any) => (p._id || p).toString() === params.id) && (
+                                  <Check size={18} className="text-red-600" />
+                                )}
+                              </div>
+                            </div>
+                          )) : (
+                            <div className="px-6 py-8 text-center">
+                              <p className="text-sm text-gray-500 mb-4">No boards yet.</p>
+                            </div>
+                          )}
+                        </div>
+                        <div className="border-t border-gray-50 mt-2 pt-2 px-2">
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowCreateBoardModal(true);
                               setShowBoardPicker(false);
                             }}
-                            className="px-4 py-3 hover:bg-gray-50 flex items-center justify-between cursor-pointer group"
+                            className="w-full flex items-center gap-2 px-3 py-3 hover:bg-gray-100 rounded-2xl transition-colors font-bold text-gray-800"
                           >
-                            <span className="font-semibold text-gray-700">{board.name}</span>
-                            <div className="w-8 h-8 rounded-lg bg-gray-100 group-hover:bg-white flex items-center justify-center">
-                              {board.isPrivate && <X size={12} className="text-gray-400" />}
+                            <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
+                              <Plus size={18} />
                             </div>
-                          </div>
-                        )) : (
-                          <p className="px-4 py-2 text-sm text-gray-500">No boards yet.</p>
-                        )}
+                            Create board
+                          </button>
+                        </div>
                       </div>
-                      <div className="border-t border-gray-50 mt-2 pt-2 px-2">
-                        <button 
-                          onClick={async () => {
-                            const name = prompt("Enter board name:");
-                            if (name) {
-                              const res = await fetch('/api/boards', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ name, userEmail: user?.email })
-                              });
-                              if (res.ok) fetchBoards();
-                            }
-                          }}
-                          className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-100 rounded-xl transition-colors font-bold text-gray-800"
-                        >
-                          <Plus size={18} /> Create board
-                        </button>
-                      </div>
-                    </div>
+                    </>
                   )}
 
                   <button 
-                    onClick={() => selectedBoardId ? saveToBoard(selectedBoardId) : handleSave()}
+                    onClick={handleSave}
                     disabled={saving}
                     className={`${isSaved ? 'bg-black text-white' : 'bg-red-600 text-white hover:bg-red-700'} px-10 py-3.5 rounded-full font-bold shadow-lg shadow-red-100 active:scale-95 transition-all flex items-center gap-2`}
                   >
                     {isSaved ? <Check size={20} /> : null}
+                    {isSaved ? 'Saved' : 'Save'}
+                  </button>
+                </div>
+
+                {/* Mobile View: Save only */}
+                <div className="md:hidden">
+                  <button 
+                    onClick={handleSave}
+                    disabled={saving}
+                    className={`${isSaved ? 'bg-black text-white' : 'bg-red-600 text-white hover:bg-red-700'} px-6 py-2.5 rounded-full font-bold shadow-lg shadow-red-100 active:scale-95 transition-all flex items-center gap-2`}
+                  >
                     {isSaved ? 'Saved' : 'Save'}
                   </button>
                 </div>
@@ -375,18 +442,54 @@ export default function PinDetailPage({ params: paramsPromise }: { params: Promi
                         className="fixed inset-0 z-10" 
                         onClick={() => setShowMoreMenu(false)}
                       />
-                      <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-gray-100 rounded-2xl shadow-xl py-2 z-20 animate-in fade-in zoom-in duration-200">
-                        <div className="md:hidden border-b border-gray-50 mb-1">
-                          <button className="w-full text-left px-4 py-2 hover:bg-gray-50 text-gray-800 font-bold flex items-center justify-between">
-                            Profile <ChevronDown size={14} />
+                      <div className="absolute top-full right-0 mt-2 w-56 bg-white border border-gray-100 rounded-3xl shadow-2xl py-3 z-20 animate-in fade-in zoom-in duration-200">
+                        <div className="md:hidden border-b border-gray-100 pb-2 mb-2">
+                          <button 
+                            onClick={handleLike}
+                            className="w-full text-left px-5 py-3 hover:bg-gray-50 text-gray-800 font-bold flex items-center justify-between"
+                          >
+                            <div className="flex items-center gap-3">
+                              <Heart size={20} className={liked ? 'text-red-500' : 'text-gray-400'} fill={liked ? 'currentColor' : 'none'} />
+                              {liked ? 'Liked' : 'Like'}
+                            </div>
+                            {likesCount > 0 && <span className="text-xs text-gray-400">{likesCount}</span>}
                           </button>
-                          <button className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 font-bold">
-                            Save Pin
+                          <button 
+                            onClick={handlePinShare}
+                            className="w-full text-left px-5 py-3 hover:bg-gray-50 text-gray-800 font-bold flex items-center gap-3"
+                          >
+                            <Share2 size={20} className="text-gray-400" />
+                            Share
+                          </button>
+                          <button 
+                            onClick={() => {
+                              setShowBoardPicker(true);
+                              setShowMoreMenu(false);
+                            }}
+                            className="w-full text-left px-5 py-3 hover:bg-gray-50 text-gray-800 font-bold flex items-center gap-3"
+                          >
+                            <LayoutGrid size={20} className="text-gray-400" />
+                            {selectedBoardId ? (boards.find(b => b._id === selectedBoardId)?.name) : "Add to board"}
                           </button>
                         </div>
-                        <button className="w-full text-left px-4 py-2 hover:bg-gray-50 text-gray-800 transition-colors">Share</button>
-                        <button className="w-full text-left px-4 py-2 hover:bg-gray-50 text-gray-800 transition-colors">Edit Pin</button>
-                        <button className="w-full text-left px-4 py-2 hover:bg-gray-50 text-red-600 transition-colors">Report</button>
+                        <button 
+                          onClick={() => {
+                            triggerToast("Edit coming soon!");
+                            setShowMoreMenu(false);
+                          }}
+                          className="w-full text-left px-5 py-3 hover:bg-gray-50 text-gray-800 transition-colors font-medium"
+                        >
+                          Edit Pin
+                        </button>
+                        <button 
+                          onClick={() => {
+                            triggerToast("Pin reported. Thank you!");
+                            setShowMoreMenu(false);
+                          }}
+                          className="w-full text-left px-5 py-3 hover:bg-gray-50 text-red-600 transition-colors font-medium"
+                        >
+                          Report Pin
+                        </button>
                       </div>
                     </>
                   )}
@@ -409,6 +512,33 @@ export default function PinDetailPage({ params: paramsPromise }: { params: Promi
                   <Search size={18} />
                 </div>
               </div>
+            </div>
+
+            {/* Author Section - NEW */}
+            <div className="px-6 py-6 border-t border-gray-50 flex items-center justify-between">
+              <div 
+                className="flex items-center gap-4 cursor-pointer group"
+                onClick={() => pin?.author?.id && router.push(`/profile/${pin.author.id}`)}
+              >
+                <img 
+                  src={pin?.author?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=user"} 
+                  className="w-12 h-12 rounded-full border border-gray-100 group-hover:scale-110 transition-transform" 
+                  alt={pin?.author?.name} 
+                />
+                <div>
+                  <h4 className="font-black text-gray-900 group-hover:text-red-600 transition-colors">{pin?.author?.name || "Pinterest User"}</h4>
+                  <p className="text-sm text-gray-500 font-medium">Author</p>
+                </div>
+              </div>
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  pin?.author?.id && router.push(`/profile/${pin.author.id}`);
+                }}
+                className="bg-gray-100 hover:bg-gray-200 px-6 py-3 rounded-full font-bold text-gray-800 transition-all active:scale-95"
+              >
+                View Profile
+              </button>
             </div>
 
             {/* Comments Section */}
@@ -593,6 +723,86 @@ export default function PinDetailPage({ params: paramsPromise }: { params: Promi
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+      {/* CREATE BOARD MODAL */}
+      <AnimatePresence>
+        {showCreateBoardModal && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowCreateBoardModal(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="bg-white rounded-[3rem] w-full max-w-md p-10 relative shadow-2xl overflow-hidden"
+            >
+              <h2 className="text-3xl font-black mb-8 text-center text-gray-900">Create board</h2>
+              
+              <div className="space-y-8">
+                <div>
+                  <label className="block text-sm font-bold text-gray-600 mb-3 ml-1">Name</label>
+                  <input 
+                    type="text" 
+                    placeholder='Like "Places to Go" or "Recipes"'
+                    className="w-full px-6 py-4 rounded-[1.25rem] border-2 border-gray-100 focus:border-black outline-none transition-all text-lg font-medium placeholder-gray-300"
+                    value={newBoardData.name}
+                    onChange={(e) => setNewBoardData(prev => ({ ...prev, name: e.target.value }))}
+                    autoFocus
+                  />
+                </div>
+
+                <div className="flex items-center gap-4 p-5 bg-gray-50/50 rounded-[1.5rem] border border-gray-100">
+                  <input 
+                    type="checkbox" 
+                    id="secret-board"
+                    className="w-6 h-6 rounded-md border-gray-300 text-black focus:ring-black cursor-pointer"
+                    checked={newBoardData.isPrivate}
+                    onChange={(e) => setNewBoardData(prev => ({ ...prev, isPrivate: e.target.checked }))}
+                  />
+                  <label htmlFor="secret-board" className="cursor-pointer">
+                    <span className="block font-bold text-gray-800 text-lg">Keep this board secret</span>
+                    <span className="block text-sm text-gray-500">Only you can see this board.</span>
+                  </label>
+                </div>
+
+                <div className="flex justify-end gap-4 pt-4">
+                  <button 
+                    onClick={() => setShowCreateBoardModal(false)}
+                    className="px-8 py-4 rounded-full font-bold text-lg hover:bg-gray-100 transition-all text-gray-800"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={handleCreateBoard}
+                    disabled={!newBoardData.name.trim()}
+                    className="bg-red-600 text-white px-10 py-4 rounded-full font-bold text-lg hover:bg-red-700 transition-all shadow-xl shadow-red-100 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Create
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      {/* TOAST NOTIFICATION */}
+      <AnimatePresence>
+        {showToast.show && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[200] bg-gray-900 text-white px-8 py-4 rounded-2xl font-bold shadow-2xl flex items-center gap-3 border border-gray-800"
+          >
+            <Sparkles size={20} className="text-red-500" />
+            {showToast.message}
+          </motion.div>
         )}
       </AnimatePresence>
     </PageContainer>

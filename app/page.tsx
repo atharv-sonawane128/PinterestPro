@@ -6,32 +6,20 @@ import MasonryGrid from '../components/MasonryGrid';
 import { Wifi, WifiOff, Sparkles, TrendingUp, Layers, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
-import { useSearchParams } from 'next/navigation';
-
-const CATEGORIES = [
-  { name: 'All', icon: Sparkles },
-  { name: 'Reality quotes', icon: TrendingUp },
-  { name: 'Beautiful Paragraphs', icon: Layers },
-  { name: 'Hanuman', icon: Sparkles },
-  { name: 'Psychology facts', icon: TrendingUp },
-  { name: 'Cute couple art', icon: Layers },
-];
+import { useSearch } from '@/context/SearchContext';
 
 export default function Home() {
   const { user } = useAuth();
-  const searchParams = useSearchParams();
-  const searchQuery = searchParams.get('search');
+  const { searchQuery } = useSearch();
   
   const [isOfflineMode, setIsOfflineMode] = useState(false);
   const [pins, setPins] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeCategory, setActiveCategory] = useState('All');
 
-  const fetchPins = async (category: string, search: string | null = null) => {
+  const fetchPins = async (search: string | null = null) => {
     setLoading(true);
     try {
       let url = `/api/pins?`;
-      if (category !== 'All') url += `category=${encodeURIComponent(category)}&`;
       if (search) url += `search=${encodeURIComponent(search)}&`;
       
       const res = await fetch(url);
@@ -48,33 +36,18 @@ export default function Home() {
 
   useEffect(() => {
     if (!isOfflineMode) {
-      fetchPins(activeCategory, searchQuery);
+      fetchPins(searchQuery);
     } else {
       const savedPins = pins.filter((pin: any) => pin.privateNote);
       setPins(savedPins);
     }
-  }, [activeCategory, isOfflineMode, searchQuery]);
+  }, [isOfflineMode, searchQuery]);
 
   return (
     <PageContainer>
-      {/* Category & Action Bar */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-        <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar max-w-full">
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat.name}
-              onClick={() => setActiveCategory(cat.name)}
-              className={`px-5 py-2.5 rounded-full text-sm font-semibold whitespace-nowrap transition-all flex items-center gap-2 ${
-                activeCategory === cat.name
-                  ? 'bg-black text-white shadow-md'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              <cat.icon size={14} />
-              {cat.name}
-            </button>
-          ))}
-        </div>
+      {/* Action Bar */}
+      <div className="flex flex-col md:flex-row justify-end items-start md:items-center gap-4 mb-8">
+        <div className="flex items-center gap-4">
 
         <div className="flex items-center gap-4">
           <button
@@ -90,6 +63,7 @@ export default function Home() {
           </button>
         </div>
       </div>
+    </div>
 
       {/* Masonry Grid */}
       <div className="mt-4">

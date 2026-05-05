@@ -14,6 +14,7 @@ export default function ProfilePage() {
   const [savedPins, setSavedPins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean, id: string | null }>({ show: false, id: null });
+  const [showToast, setShowToast] = useState(false);
 
   const fetchData = async () => {
     if (!user) return;
@@ -37,6 +38,10 @@ export default function ProfilePage() {
 
   useEffect(() => {
     fetchData();
+    
+    const handleFocus = () => fetchData();
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, [user]);
 
   const handleDeletePin = async () => {
@@ -50,6 +55,13 @@ export default function ProfilePage() {
     } catch (error) {
       console.error("Failed to delete pin:", error);
     }
+  };
+
+  const handleShare = () => {
+    const url = `${window.location.origin}/profile/${user?.uid}`;
+    navigator.clipboard.writeText(url);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
   };
 
   if (!user) {
@@ -82,7 +94,12 @@ export default function ProfilePage() {
         <div className="flex items-center gap-4 mb-10">
           <span className="font-bold text-gray-800">1 following</span>
           <div className="flex gap-3">
-            <button className="px-6 py-3 bg-gray-100 rounded-full font-bold hover:bg-gray-200 transition-colors">Share profile</button>
+            <button 
+              onClick={handleShare}
+              className="px-6 py-3 bg-gray-100 rounded-full font-bold hover:bg-gray-200 transition-colors"
+            >
+              Share profile
+            </button>
             <button className="px-6 py-3 bg-gray-100 rounded-full font-bold hover:bg-gray-200 transition-colors flex items-center gap-2">
               Edit profile
             </button>
@@ -192,6 +209,21 @@ export default function ProfilePage() {
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* TOAST NOTIFICATION */}
+      <AnimatePresence>
+        {showToast && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[200] bg-gray-900 text-white px-8 py-4 rounded-2xl font-bold shadow-2xl flex items-center gap-3 border border-gray-800"
+          >
+            <Share2 size={20} className="text-red-500" />
+            Profile link copied to clipboard!
+          </motion.div>
         )}
       </AnimatePresence>
     </PageContainer>

@@ -76,39 +76,39 @@ export default function CreatePinPage() {
   return (
     <PageContainer>
       <div className="max-w-5xl mx-auto">
-        <div className="flex items-center justify-between mb-10">
-          <h1 className="text-3xl font-black text-gray-800">Create Pin</h1>
-          <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 mb-10">
+          <h1 className="text-2xl md:text-3xl font-black text-gray-800">Create Pin</h1>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
             <button 
               onClick={() => router.back()}
-              className="px-6 py-2.5 rounded-full font-bold hover:bg-gray-100 transition-colors"
+              className="flex-1 sm:flex-none px-6 py-2.5 rounded-full font-bold hover:bg-gray-100 transition-colors text-sm md:text-base border border-gray-100 sm:border-none"
             >
               Discard
             </button>
             <button 
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="bg-red-600 text-white px-10 py-2.5 rounded-full font-bold hover:bg-red-700 shadow-lg shadow-red-100 active:scale-95 transition-all disabled:opacity-50"
+              className="flex-1 sm:flex-none bg-red-600 text-white px-8 md:px-10 py-2.5 md:py-3 rounded-full font-bold hover:bg-red-700 shadow-lg shadow-red-100 active:scale-95 transition-all disabled:opacity-50 text-sm md:text-base"
             >
               {isSubmitting ? 'Publishing...' : 'Publish'}
             </button>
           </div>
         </div>
 
-        <div className="bg-white rounded-[3rem] shadow-2xl overflow-hidden border border-gray-100 flex flex-col md:flex-row min-h-[600px]">
+        <div className="bg-white rounded-[2rem] md:rounded-[3rem] shadow-2xl overflow-hidden border border-gray-100 flex flex-col md:flex-row min-h-[500px] md:min-h-[600px]">
           {/* UPLOAD SECTION */}
           <div className="w-full md:w-[45%] bg-gray-50/50 p-8 flex flex-col border-r border-gray-100">
             {images.length === 0 ? (
               <div 
                 onClick={() => fileInputRef.current?.click()}
-                className="flex-1 border-4 border-dashed border-gray-200 rounded-[2.5rem] flex flex-col items-center justify-center gap-6 cursor-pointer hover:border-red-200 hover:bg-red-50/30 transition-all group"
+                className="flex-1 min-h-[300px] border-4 border-dashed border-gray-200 rounded-[2.5rem] flex flex-col items-center justify-center gap-4 md:gap-6 p-4 cursor-pointer hover:border-red-200 hover:bg-red-50/30 transition-all group text-center"
               >
-                <div className="w-20 h-20 bg-white rounded-full shadow-lg flex items-center justify-center text-gray-400 group-hover:text-red-500 transition-colors">
-                  <Upload size={32} />
+                <div className="w-16 h-16 md:w-20 md:h-20 bg-white rounded-full shadow-lg flex items-center justify-center text-gray-400 group-hover:text-red-500 transition-colors">
+                  <Upload size={28} className="md:w-8 md:h-8" />
                 </div>
-                <div className="text-center">
-                  <p className="font-bold text-gray-800 text-lg">Click to upload or drag and drop</p>
-                  <p className="text-sm text-gray-400 mt-2">Recommendation: Use high-quality .jpg files less than 20MB</p>
+                <div>
+                  <p className="font-bold text-gray-800 text-base md:text-lg px-2">Click to upload or drag and drop</p>
+                  <p className="text-[10px] md:text-sm text-gray-400 mt-2 max-w-[200px] md:max-w-none mx-auto">Recommendation: Use high-quality .jpg files less than 20MB</p>
                 </div>
                 <input 
                   type="file" 
@@ -173,14 +173,14 @@ export default function CreatePinPage() {
           </div>
 
           {/* FORM SECTION */}
-          <div className="flex-1 p-10 md:p-14 flex flex-col gap-10">
+          <div className="flex-1 p-6 sm:p-10 md:p-14 flex flex-col gap-8 md:gap-10">
             <div className="space-y-2">
               <input 
                 type="text" 
                 placeholder="Add your title" 
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full text-4xl font-black border-b-2 border-transparent focus:border-gray-200 outline-none placeholder:text-gray-200 pb-2 transition-all"
+                className="w-full text-2xl md:text-4xl font-black border-b-2 border-transparent focus:border-gray-200 outline-none placeholder:text-gray-200 pb-2 transition-all"
               />
             </div>
 

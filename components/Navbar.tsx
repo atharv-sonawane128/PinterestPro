@@ -2,24 +2,47 @@ import React from 'react';
 import { Search, Bell, MessageCircle, User, ChevronDown, Camera, Mic, LogIn } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useSearch } from '@/context/SearchContext';
+import { usePathname, useRouter } from 'next/navigation';
 
 const Navbar = () => {
   const { user, login, logout } = useAuth();
-  const [searchQuery, setSearchQuery] = React.useState('');
+  const { searchQuery, setSearchQuery } = useSearch();
   const router = useRouter();
+  const pathname = usePathname();
+  const [mounted, setMounted] = React.useState(false);
 
-  const handleSearch = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && searchQuery.trim()) {
-      router.push(`/?search=${encodeURIComponent(searchQuery.trim())}`);
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const handleSearchChange = (val: string) => {
+    setSearchQuery(val);
+    if (pathname !== '/') {
+      router.push('/');
     }
   };
+
+  if (!mounted) return (
+    <nav className="fixed top-0 left-0 right-0 h-20 bg-white z-50 flex items-center px-4 md:px-8 border-b border-gray-100">
+      <div className="flex items-center gap-2 mr-4">
+        <Link href="/" className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center cursor-pointer">
+          <span className="text-white font-bold text-xl">P</span>
+        </Link>
+      </div>
+      <div className="flex-1 max-w-7xl mx-auto flex items-center bg-gray-100 rounded-full px-4 py-2.5 gap-2 group">
+        <Search className="text-gray-500 w-5 h-5" />
+        <div className="w-full h-6 bg-transparent" />
+      </div>
+      <div className="w-10 h-10 ml-4 bg-gray-200 rounded-full animate-pulse" />
+    </nav>
+  );
 
   return (
     <nav className="fixed top-0 left-0 right-0 h-20 bg-white z-50 flex items-center px-4 md:px-8 border-b border-gray-100">
       <div className="flex items-center gap-2 mr-4">
-        <Link href="/" className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-red-700 transition-colors">
-          <span className="text-white font-bold text-xl">P</span>
+        <Link href="/" className="flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity">
+          <img src="/image.png" alt="Pinterest Pro" className="h-12 w-auto object-contain" />
         </Link>
       </div>
 
@@ -29,26 +52,14 @@ const Navbar = () => {
           type="text"
           placeholder="Search for ideas..."
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onKeyDown={handleSearch}
+          onChange={(e) => handleSearchChange(e.target.value)}
           className="bg-transparent border-none outline-none w-full text-gray-800 placeholder-gray-500 text-base"
         />
-        <div className="flex items-center gap-3 pr-2">
-          <Camera className="text-gray-600 w-5 h-5 cursor-pointer hover:text-black transition-colors" />
-          <Mic className="text-gray-600 w-5 h-5 cursor-pointer hover:text-black transition-colors" />
-        </div>
       </div>
 
       <div className="flex items-center gap-2 md:gap-4 ml-4">
         {user ? (
           <>
-            <button className="p-2.5 hover:bg-gray-100 rounded-full transition-colors relative">
-              <Bell className="text-gray-600 w-6 h-6" />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-            </button>
-            <button className="p-2.5 hover:bg-gray-100 rounded-full transition-colors">
-              <MessageCircle className="text-gray-600 w-6 h-6" />
-            </button>
             <div className="flex items-center gap-1 cursor-pointer group relative">
               <Link href="/profile" className="flex items-center gap-1 hover:bg-gray-100 p-1.5 rounded-full transition-colors">
                 {user.photoURL ? (
