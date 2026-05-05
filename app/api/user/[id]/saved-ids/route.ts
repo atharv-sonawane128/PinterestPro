@@ -20,7 +20,7 @@ export async function GET(
     // Note: Some boards might use userEmail instead of userId, but we'll try to find by userId first.
     // If we need to, we can also query by email if passed.
     
-    const boardIds = userBoards.flatMap(b => b.pins.map(p => p.toString()));
+    const boardIds = userBoards.flatMap((b: any) => b.pins.map((p: any) => p.toString()));
     
     // Combine and unique
     const allIds = Array.from(new Set([...generalIds, ...boardIds]));
