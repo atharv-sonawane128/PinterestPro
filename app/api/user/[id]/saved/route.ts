@@ -14,7 +14,7 @@ export async function GET(
     // Find all saves for this user
     const saves = await SavedPin.find({ userId: id }).populate('pinId');
     console.log(`Found ${saves.length} saves for user ${id}`);
-    const pins = saves.map(s => s.pinId).filter(p => p !== null);
+    const pins = saves.map((s: any) => s.pinId).filter((p: any) => p !== null);
     
     return NextResponse.json(pins);
   } catch (error: any) {

@@ -25,12 +25,12 @@ export async function GET(request: Request) {
       }).limit(10);
       
       const seenIds = new Set();
-      users = pins.map(p => ({
+      users = pins.map((p: any) => ({
         uid: p.author.id,
         name: p.author.name,
         avatar: p.author.avatar,
         email: `${p.author.name.toLowerCase().replace(/\s/g, '')}@example.com`
-      })).filter(u => {
+      })).filter((u: any) => {
         if (seenIds.has(u.uid)) return false;
         seenIds.add(u.uid);
         return true;
