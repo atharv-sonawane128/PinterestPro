@@ -11,7 +11,7 @@ export default function UserProfilePage({ params: paramsPromise }: { params: Pro
   const params = use(paramsPromise);
   const { user: currentUser } = useAuth();
   const [profileUser, setProfileUser] = useState<any>(null);
-  const [createdPins, setCreatedPins] = useState([]);
+  const [createdPins, setCreatedPins] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);

@@ -10,8 +10,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function ProfilePage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'Created' | 'Saved'>('Created');
-  const [createdPins, setCreatedPins] = useState([]);
-  const [savedPins, setSavedPins] = useState([]);
+  const [createdPins, setCreatedPins] = useState<any[]>([]);
+  const [savedPins, setSavedPins] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean, id: string | null }>({ show: false, id: null });
   const [showToast, setShowToast] = useState(false);
