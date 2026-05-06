@@ -16,7 +16,7 @@ export async function GET(request: Request) {
     }).sort({ updatedAt: -1 });
 
     // Fetch other participant details for each conversation
-    const detailedConversations = await Promise.all(conversations.map(async (conv: any) => {
+    const detailedConversations = await Promise.all(conversations.map(async (conv) => {
       const otherUid = conv.participants.find((p: string) => p !== userId);
       let otherUser = await User.findOne({ uid: otherUid }).select('name avatar uid lastActive');
       

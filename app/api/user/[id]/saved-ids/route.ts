@@ -13,7 +13,7 @@ export async function GET(
     
     // Get general saved pins
     const generalSaved = await SavedPin.find({ userId }).select('pinId');
-    const generalIds = generalSaved.map((s: any) => s.pinId.toString());
+    const generalIds = generalSaved.map(s => s.pinId.toString());
     
     // Get pins from all user's boards
     const userBoards = await Board.find({ userId }).select('pins');

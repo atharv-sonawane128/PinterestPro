@@ -1,4 +1,3 @@
-// BUILD_TRIGGER: TESTING_VERCEL_CONNECTION_12345
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import Board from '@/models/Board';
