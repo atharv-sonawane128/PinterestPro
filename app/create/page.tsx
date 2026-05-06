@@ -6,8 +6,30 @@ import { Image as ImageIcon, Plus, X, Upload, ChevronDown, ChevronUp, Lock, Spar
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { storage } from '@/lib/firebase';
-import { ref, uploadString, getDownloadURL } from 'firebase/storage';
+
+// Helper to compress images before sending to MongoDB
+const compressImage = (base64: string, maxWidth = 1200, quality = 0.7): Promise<string> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.src = base64;
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
+
+      if (width > maxWidth) {
+        height = (maxWidth / width) * height;
+        width = maxWidth;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx?.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+  });
+};
 
 export default function CreatePinPage() {
   const router = useRouter();
@@ -26,8 +48,9 @@ export default function CreatePinPage() {
     if (files) {
       Array.from(files).forEach(file => {
         const reader = new FileReader();
-        reader.onloadend = () => {
-          setImages(prev => [...prev, reader.result as string]);
+        reader.onloadend = async () => {
+          const compressed = await compressImage(reader.result as string);
+          setImages(prev => [...prev, compressed]);
         };
         reader.readAsDataURL(file);
       });
@@ -46,26 +69,14 @@ export default function CreatePinPage() {
 
     setIsSubmitting(true);
     try {
-      // 1. Upload images to Firebase Storage first to avoid 413 error
-      const imageUrls = await Promise.all(
-        images.map(async (base64, index) => {
-          // If it's already a URL (e.g. from a retry), skip upload
-          if (base64.startsWith('http')) return base64;
-
-          const storageRef = ref(storage, `pins/${user?.uid || 'anon'}/${Date.now()}-${index}.jpg`);
-          await uploadString(storageRef, base64, 'data_url');
-          return await getDownloadURL(storageRef);
-        })
-      );
-
-      // 2. Send the URLs to your database
+      // Send the Base64 images directly to MongoDB via our API
       const response = await fetch('/api/pins', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title,
           description,
-          images: imageUrls,
+          images, // These are now compressed Base64 strings
           link,
           category,
           privateNote,
