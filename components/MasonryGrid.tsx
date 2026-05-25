@@ -20,9 +20,10 @@ interface Pin {
 interface MasonryGridProps {
   pins: Pin[];
   columns?: number | { [key: number]: number, default: number };
+  onDelete?: (id: string) => void;
 }
 
-const MasonryGrid = ({ pins, columns }: MasonryGridProps) => {
+const MasonryGrid = ({ pins, columns, onDelete }: MasonryGridProps) => {
   const breakpointColumnsObj = columns || {
     default: 5,
     1400: 4,
@@ -47,7 +48,7 @@ const MasonryGrid = ({ pins, columns }: MasonryGridProps) => {
         columnClassName="my-masonry-grid_column"
       >
         {pins.map((pin: any) => (
-          <PinCard key={pin._id || pin.id} id={pin._id || pin.id} {...pin} />
+          <PinCard key={pin._id || pin.id} id={pin._id || pin.id} {...pin} onDelete={onDelete} />
         ))}
       </Masonry>
 

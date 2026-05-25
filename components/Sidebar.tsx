@@ -1,13 +1,15 @@
 'use client';
 
 import React from 'react';
-import { Home, Compass, LayoutGrid, Plus, Bell, MessageCircle, Settings, LogOut } from 'lucide-react';
+import { Home, Compass, LayoutGrid, Plus, Bell, MessageCircle, Settings, LogOut, LogIn } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 
 const Sidebar = () => {
   const pathname = usePathname();
+  const { user, login, logout } = useAuth();
 
   const menuItems = [
     { icon: Home, label: 'Home', href: '/' },
@@ -53,12 +55,17 @@ const Sidebar = () => {
             Settings
           </span>
         </Link>
-        <button className="p-3 text-red-500 hover:bg-red-50 rounded-2xl transition-colors group relative flex items-center justify-center">
-          <LogOut size={24} />
-          <span className="absolute left-full ml-4 px-2 py-1 bg-red-600 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-            Logout
-          </span>
-        </button>
+        {user && (
+          <button 
+            onClick={logout}
+            className="p-3 text-red-500 hover:bg-red-50 rounded-2xl transition-colors group relative flex items-center justify-center"
+          >
+            <LogOut size={24} />
+            <span className="absolute left-full ml-4 px-2 py-1 bg-red-600 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+              Logout
+            </span>
+          </button>
+        )}
       </div>
     </aside>
   );

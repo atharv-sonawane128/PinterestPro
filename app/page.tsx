@@ -94,7 +94,25 @@ export default function Home() {
                   </div>
                 </div>
               )}
-              <MasonryGrid pins={pins} />
+              <MasonryGrid 
+                pins={pins} 
+                onDelete={async (id) => {
+                  const confirmDelete = window.confirm("Are you sure you want to delete this pin?");
+                  if (!confirmDelete) return;
+                  try {
+                    const res = await fetch(`/api/pins/${id}`, { method: 'DELETE' });
+                    if (res.ok) {
+                      setPins(prev => prev.filter(p => (p._id || p.id) !== id));
+                    } else {
+                      const data = await res.json();
+                      alert(data.error || "Failed to delete pin");
+                    }
+                  } catch (err) {
+                    console.error(err);
+                    alert("Failed to delete pin");
+                  }
+                }}
+              />
             </motion.div>
           ) : (
             <motion.div 

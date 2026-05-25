@@ -149,7 +149,10 @@ export default function ProfilePage() {
             >
               {(activeTab === 'Created' ? createdPins : savedPins).length > 0 ? (
                 <div className="relative">
-                  <MasonryGrid pins={activeTab === 'Created' ? createdPins : savedPins} />
+                  <MasonryGrid 
+                    pins={activeTab === 'Created' ? createdPins : savedPins} 
+                    onDelete={activeTab === 'Created' ? (id) => setDeleteConfirm({ show: true, id }) : undefined}
+                  />
                   
                   {/* Delete overlay for own pins */}
                   {activeTab === 'Created' && (

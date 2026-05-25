@@ -63,10 +63,10 @@ const Navbar = () => {
             <div className="flex items-center gap-1 cursor-pointer group relative">
               <Link href="/profile" className="flex items-center gap-1 hover:bg-gray-100 p-1.5 rounded-full transition-colors">
                 {user.photoURL ? (
-                  <img 
-                    src={user.photoURL} 
-                    alt={user.displayName || "User"} 
-                    className="w-8 h-8 rounded-full object-cover border border-gray-100 shadow-sm" 
+                  <img
+                    src={user.photoURL}
+                    alt={user.displayName || "User"}
+                    className="w-8 h-8 rounded-full object-cover border border-gray-100 shadow-sm"
                     referrerPolicy="no-referrer"
                   />
                 ) : (
@@ -76,15 +76,14 @@ const Navbar = () => {
                 )}
                 <ChevronDown className="text-gray-500 w-4 h-4" />
               </Link>
-              
+
             </div>
           </>
         ) : (
-          <button 
+          <button
             onClick={login}
-            className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-6 py-2.5 rounded-full font-bold transition-all shadow-md active:scale-95"
+            className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-800 px-6 py-2.5 rounded-full font-bold transition-all active:scale-95 shadow-sm"
           >
-            <LogIn size={18} />
             Login
           </button>
         )}

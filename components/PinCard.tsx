@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Bookmark, Share2, MoreHorizontal, MessageSquareText, Download, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Bookmark, Share2, MoreHorizontal, MessageSquareText, Download, Check, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useSaved } from '@/context/SavedContext';
@@ -19,9 +19,10 @@ interface PinCardProps {
     avatar: string;
     id: string;
   };
+  onDelete?: (id: string) => void;
 }
 
-const PinCard = ({ id, images, title, privateNote: initialNote, author }: PinCardProps) => {
+const PinCard = ({ id, images, title, privateNote: initialNote, author, onDelete }: PinCardProps) => {
   const router = useRouter();
   const { user } = useAuth();
   const { isPinSaved, toggleSave } = useSaved();
@@ -43,6 +44,31 @@ const PinCard = ({ id, images, title, privateNote: initialNote, author }: PinCar
       await toggleSave(id);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user) return;
+    
+    if (onDelete) {
+      onDelete(id);
+    } else {
+      const confirmDelete = window.confirm("Are you sure you want to delete this pin?");
+      if (!confirmDelete) return;
+
+      try {
+        const res = await fetch(`/api/pins/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+          window.location.reload();
+        } else {
+          const data = await res.json();
+          alert(data.error || "Failed to delete pin");
+        }
+      } catch (error) {
+        console.error("Failed to delete pin:", error);
+        alert("Failed to delete pin");
+      }
     }
   };
 
@@ -128,6 +154,18 @@ const PinCard = ({ id, images, title, privateNote: initialNote, author }: PinCar
         {/* Overlays */}
         <div className={`absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none`} />
         
+        {user?.uid === author.id && (
+          <div className={`absolute top-4 left-4 z-10 transition-all duration-300 transform ${isHovered ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'}`}>
+            <button 
+              onClick={handleDelete}
+              className="p-2.5 bg-white/95 backdrop-blur-md text-red-600 hover:bg-red-50 hover:text-red-700 rounded-full shadow-lg active:scale-95 transition-all flex items-center justify-center border border-red-100"
+              title="Delete Pin"
+            >
+              <Trash2 size={18} />
+            </button>
+          </div>
+        )}
+
         <div className={`absolute top-4 right-4 z-10 transition-all duration-300 transform ${isHovered ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'}`}>
           <button 
             onClick={handleSave}

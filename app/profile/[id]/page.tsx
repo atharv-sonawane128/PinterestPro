@@ -137,7 +137,25 @@ export default function UserProfilePage({ params: paramsPromise }: { params: Pro
 
       <div className="mt-12">
         <h3 className="font-bold text-xl text-gray-800 mb-8 text-center">Pins created by {profileUser.name}</h3>
-        <MasonryGrid pins={createdPins} />
+        <MasonryGrid 
+          pins={createdPins} 
+          onDelete={async (id) => {
+            const confirmDelete = window.confirm("Are you sure you want to delete this pin?");
+            if (!confirmDelete) return;
+            try {
+              const res = await fetch(`/api/pins/${id}`, { method: 'DELETE' });
+              if (res.ok) {
+                setCreatedPins(prev => prev.filter(p => (p._id || p.id) !== id));
+              } else {
+                const data = await res.json();
+                alert(data.error || "Failed to delete pin");
+              }
+            } catch (err) {
+              console.error(err);
+              alert("Failed to delete pin");
+            }
+          }}
+        />
       </div>
 
       {/* TOAST NOTIFICATION */}

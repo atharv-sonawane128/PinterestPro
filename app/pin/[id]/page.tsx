@@ -222,6 +222,28 @@ export default function PinDetailPage({ params: paramsPromise }: { params: Promi
     }
   };
 
+  const handleDeletePin = async () => {
+    const confirmDelete = window.confirm("Are you sure you want to permanently delete this pin?");
+    if (!confirmDelete) return;
+
+    try {
+      const res = await fetch(`/api/pins/${params.id}`, { method: 'DELETE' });
+      if (res.ok) {
+        // Since we are showing a toast, wait a short moment or redirect immediately
+        router.push('/');
+        setTimeout(() => {
+          triggerToast("Pin deleted successfully!");
+        }, 100);
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to delete pin");
+      }
+    } catch (error) {
+      console.error("Failed to delete pin:", error);
+      alert("Failed to delete pin");
+    }
+  };
+
   const fetchComments = async () => {
     try {
       const res = await fetch(`/api/pins/${params.id}/comments`);
@@ -490,6 +512,14 @@ export default function PinDetailPage({ params: paramsPromise }: { params: Promi
                         >
                           Report Pin
                         </button>
+                        {user?.uid === pin?.author?.id && (
+                          <button 
+                            onClick={handleDeletePin}
+                            className="w-full text-left px-5 py-3 hover:bg-red-50 text-red-600 transition-colors font-bold border-t border-gray-100"
+                          >
+                            Delete Pin
+                          </button>
+                        )}
                       </div>
                     </>
                   )}
